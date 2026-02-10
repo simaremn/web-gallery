@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- AUTH BAR -->
+  <!-- TOP BAR -->
   <header class="topbar">
     <div class="brand">
       <div class="logo">❤</div>
@@ -18,21 +18,18 @@
     </div>
 
     <div class="actions">
-      <!-- logged out -->
-      <div id="authLoggedOut" class="authRow">
-        <input id="emailInput" class="input authInput" placeholder="Email" autocomplete="email" />
-        <input id="passInput" class="input authInput" placeholder="Password" type="password" autocomplete="current-password" />
-        <button id="loginBtn" class="btn primary" type="button">Log in</button>
-        <button id="signupBtn" class="btn" type="button">Sign up</button>
-      </div>
-
-      <!-- logged in -->
-      <div id="authLoggedIn" class="authRow" hidden>
-        <span class="pill" id="userPill">—</span>
+      <!-- always "logged in" as anonymous -->
+      <div id="authLoggedIn" class="authRow">
+        <span class="pill" id="userPill">Connecting…</span>
         <span class="pill" id="codePill">Code: —</span>
         <button id="switchBtn" class="btn ghost" type="button">Switch code</button>
-        <button id="logoutBtn" class="btn" type="button">Log out</button>
       </div>
+
+      <button id="exportBtn" class="btn" type="button" disabled>Export (JSON)</button>
+      <label class="btn ghost filebtn">
+        Import (JSON)
+        <input id="importInput" type="file" accept="application/json" hidden disabled />
+      </label>
     </div>
   </header>
 
@@ -40,18 +37,18 @@
     <!-- JOIN / CREATE -->
     <section id="joinCard" class="card joinCard">
       <h2 class="joinTitle">Create or join a gallery</h2>
-      <p class="joinHint">Only members with the same code can see the same gallery.</p>
+      <p class="joinHint">Anyone with the same code can access the same gallery.</p>
 
       <div class="row">
         <button id="createGalleryBtn" class="btn primary" type="button">Create new gallery</button>
-        <input id="joinCodeInput" class="input" placeholder="Enter code (e.g. 7H3KQ9)" autocomplete="off" />
+        <input id="joinCodeInput" class="input" placeholder="Enter code (e.g. A7K9Q2M4X8)" autocomplete="off" />
         <button id="joinGalleryBtn" class="btn" type="button">Join</button>
       </div>
 
       <p class="joinSmall" id="joinStatus">—</p>
     </section>
 
-    <!-- FILTERS + GRID -->
+    <!-- FILTERS -->
     <section class="filters card">
       <div class="row">
         <input id="searchInput" class="input" placeholder="Search by note/location..." />
