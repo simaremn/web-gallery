@@ -55,7 +55,7 @@ body{
 .filters{padding:14px}
 .row{display:flex; gap:10px; flex-wrap:wrap}
 
-.input, select, textarea{
+.input, textarea{
   width:100%;
   background: rgba(255,255,255,.06);
   border:1px solid rgba(255,255,255,.12);
@@ -64,7 +64,7 @@ body{
   border-radius:14px;
   outline:none;
 }
-.input:focus, select:focus, textarea:focus{border-color: rgba(124,92,255,.7)}
+.input:focus, textarea:focus{border-color: rgba(124,92,255,.7)}
 
 .date-input{ cursor: pointer; }
 .date-input::placeholder{ color: rgba(168,179,207,.75); }
@@ -80,6 +80,7 @@ body{
   white-space:nowrap;
 }
 .btn:hover{transform: translateY(-1px)}
+.btn:disabled{opacity:.5; cursor:not-allowed; transform:none}
 .btn.primary{
   background: linear-gradient(135deg, rgba(124,92,255,.95), rgba(124,92,255,.65));
   border-color: rgba(124,92,255,.6);
@@ -130,7 +131,6 @@ body{
   font-size:12px;
   color:var(--muted);
 }
-
 .metaLine{
   margin-top:6px;
   font-size:13px;
@@ -138,12 +138,11 @@ body{
   opacity:.95;
   overflow:hidden;
 
-  /* WebKit clamp */
   display:-webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 
-  /* Standard property (silences warnings / future-proof) */
+  /* standard future-proof */
   line-clamp: 2;
 }
 
@@ -153,12 +152,9 @@ body{
   text-align:center;
 }
 
+/* ===== Modal ===== */
 .modal::backdrop{background: rgba(0,0,0,.6)}
-.modal{
-  border:none;
-  padding:0;
-  background:transparent;
-}
+.modal{border:none; padding:0; background:transparent;}
 .modalCard{
   width:min(900px, calc(100vw - 24px));
   border-radius: var(--radius);
@@ -166,13 +162,13 @@ body{
   background: linear-gradient(180deg, rgba(18,26,42,.98), rgba(15,21,36,.98));
   box-shadow: var(--shadow);
   padding:14px;
+  overflow: visible;
 }
-
 .modalHead{
   display:flex; align-items:center; justify-content:space-between;
   gap:10px; padding:6px 4px 10px;
 }
-.modalHead h2{margin:0; font-size:18px}
+.modalHead h2{margin:0; font-size:18px; color: rgba(232,238,252,.92);}
 .iconbtn{
   background: transparent;
   border:1px solid rgba(255,255,255,.14);
@@ -181,11 +177,6 @@ body{
   border-radius:12px;
   cursor:pointer;
 }
-
-.modalHead h2{
-    color:var(--muted);
-}
-
 .formGrid{
   display:grid;
   grid-template-columns: 1fr 1fr;
@@ -194,7 +185,6 @@ body{
 .field span{display:block; font-size:12px; color:var(--muted); margin:0 0 6px 2px}
 .field small{display:block; color:var(--muted); opacity:.9; margin-top:6px}
 .field.full{grid-column:1 / -1}
-
 .modalFoot{
   margin-top:12px;
   display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;
@@ -224,9 +214,28 @@ body{
 }
 .meta .full{grid-column: 1 / -1}
 
+/* ===== Join / Auth UI ===== */
+.authRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.pill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  color: rgba(232,238,252,.92);
+  font-size: 12px;
+}
+.joinCard{ padding:14px; margin-bottom: 14px; }
+.joinTitle{ margin: 0 0 6px; font-size: 16px; }
+.joinHint{ margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+.joinSmall{ margin: 10px 2px 0; color: var(--muted); font-size: 12px; }
+.actionsRow{ display:flex; justify-content:flex-end; margin: 12px 0 0; }
+
 /* ===== Custom Date Picker ===== */
 .datepicker {
-  position: fixed;            /* important: works nicely over <dialog> */
+  position: fixed;
   z-index: 9999;
   width: 290px;
   border-radius: 16px;
@@ -236,7 +245,6 @@ body{
   padding: 10px;
   user-select: none;
 }
-
 .dp-head{
   display:flex;
   align-items:center;
@@ -260,7 +268,6 @@ body{
   cursor: pointer;
 }
 .dp-btn:hover{ transform: translateY(-1px); }
-
 .dp-grid{
   display:grid;
   grid-template-columns: repeat(7, 1fr);
@@ -290,7 +297,6 @@ body{
   border-color: rgba(124,92,255,.65);
   background: rgba(124,92,255,.20);
 }
-
 .dp-foot{
   display:flex;
   justify-content: space-between;
@@ -307,17 +313,12 @@ body{
 }
 .dp-link:hover{ background: rgba(255,255,255,.06); }
 
-/* allow overlays inside dialogs */
-dialog { overflow: visible; }
-.modalCard { overflow: visible; }
-
 /* ===== Custom Dropdown ===== */
 .dd{
   position: relative;
   min-width: 160px;
-  flex: 1 1 160px; /* да се държи като input в row */
+  flex: 1 1 160px;
 }
-
 .dd-btn{
   width: 100%;
   display:flex;
@@ -332,22 +333,14 @@ dialog { overflow: visible; }
   color: var(--text);
   cursor:pointer;
 }
-
 .dd-btn:focus{
   outline:none;
   border-color: rgba(124,92,255,.7);
 }
-
-.dd-label{
-  font-size: 14px;
-  color: var(--text);
-}
-
 .dd-caret{
   color: rgba(232,238,252,.75);
   font-size: 12px;
 }
-
 .dd-menu{
   position: absolute;
   left: 0;
@@ -362,9 +355,7 @@ dialog { overflow: visible; }
   background: linear-gradient(180deg, rgba(18,26,42,.98), rgba(15,21,36,.98));
   box-shadow: 0 20px 50px rgba(0,0,0,.5);
 }
-
 .dd.open .dd-menu{ display:block; }
-
 .dd-item{
   width:100%;
   text-align:left;
@@ -375,85 +366,8 @@ dialog { overflow: visible; }
   color: rgba(232,238,252,.92);
   cursor:pointer;
 }
-
-.dd-item:hover{
-  background: rgba(255,255,255,.06);
-}
-
+.dd-item:hover{ background: rgba(255,255,255,.06); }
 .dd-item[aria-selected="true"]{
   border-color: rgba(124,92,255,.45);
   background: rgba(124,92,255,.16);
 }
-
-/* ===== Auth / Join UI ===== */
-.authRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-.authInput{ min-width: 180px; max-width: 220px; }
-
-.pill{
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  padding:8px 10px;
-  border-radius:999px;
-  border:1px solid rgba(255,255,255,.14);
-  background: rgba(255,255,255,.06);
-  color: rgba(232,238,252,.92);
-  font-size: 12px;
-}
-
-.joinCard{ padding:14px; margin-bottom: 14px; }
-.joinTitle{ margin: 0 0 6px; font-size: 16px; }
-.joinHint{ margin: 0 0 12px; color: var(--muted); font-size: 13px; }
-.joinSmall{ margin: 10px 2px 0; color: var(--muted); font-size: 12px; }
-
-.actionsRow{ display:flex; justify-content:flex-end; margin: 12px 0 0; }
-
-/* Dialog overlay fixes for datepicker */
-dialog { overflow: visible; }
-.modalCard { overflow: visible; }
-
-/* ===== Custom dropdown styling ===== */
-.dd{ position:relative; min-width: 170px; flex: 1; }
-.dd-btn{
-  width:100%;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-  padding:10px 12px;
-  border-radius:14px;
-  cursor:pointer;
-  border:1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.06);
-  color: var(--text);
-}
-.dd-caret{ opacity:.8; }
-.dd-menu{
-  position:absolute;
-  top: calc(100% + 8px);
-  left:0;
-  width:100%;
-  border-radius:14px;
-  border:1px solid rgba(255,255,255,.14);
-  background: linear-gradient(180deg, rgba(18,26,42,.98), rgba(15,21,36,.98));
-  box-shadow: 0 20px 50px rgba(0,0,0,.5);
-  padding:6px;
-  display:none;
-  z-index: 50;
-}
-.dd.open .dd-menu{ display:block; }
-.dd-item{
-  width:100%;
-  text-align:left;
-  padding:10px 10px;
-  border-radius:12px;
-  background: transparent;
-  border: none;
-  color: rgba(255,255,255,.92);
-  cursor:pointer;
-}
-.dd-item[aria-selected="true"]{
-  background: rgba(124,92,255,.18);
-  outline: 1px solid rgba(124,92,255,.35);
-}
-.dd-item:hover{ background: rgba(255,255,255,.06); }
