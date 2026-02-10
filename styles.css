@@ -23,13 +23,17 @@ body{
 }
 
 .topbar{
-  position:sticky; top:0; z-index:10;
+  position: relative; /* or: static */
+  top: auto;
+  z-index: auto;
+
   display:flex; gap:16px; align-items:center; justify-content:space-between;
   padding:16px 18px;
   background: rgba(11,15,25,.7);
   backdrop-filter: blur(10px);
   border-bottom:1px solid var(--border);
 }
+
 
 .brand{display:flex; gap:12px; align-items:center}
 .logo{
@@ -371,3 +375,4 @@ body{
   border-color: rgba(124,92,255,.45);
   background: rgba(124,92,255,.16);
 }
+
