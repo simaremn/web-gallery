@@ -1,8 +1,8 @@
 /* =========================
-   CONFIG (PASTE YOURS)
+   CONFIG (YOURS)
 ========================= */
 const SUPABASE_URL = "https://eyrmotpdjzougbjwtpyr.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_wblf71wpsw1y_RsnzSv38w_NzpD7kxQ";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cm1vdHBkanpvdWdiand0cHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2ODEzODAsImV4cCI6MjA4NjI1NzM4MH0.4E_1J2qnG1hLarenspd3CSg8DUQitUWcywoy3sb105k";
 const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const BUCKET = "media";
@@ -19,7 +19,7 @@ function parseDDMMYYYY(s){
   if(!m) return null;
   const dd=+m[1], mm=+m[2], yyyy=+m[3];
   if(mm<1||mm>12||dd<1||dd>31) return null;
-  const d = new Date(yyyy, mm-1, dd, 12,0,0);
+  const d = new Date(yyyy, mm-1, dd, 12,0,0); // noon avoids day shift
   if(d.getFullYear()!==yyyy||d.getMonth()!==(mm-1)||d.getDate()!==dd) return null;
   return d;
 }
@@ -61,19 +61,13 @@ const fromDate = document.getElementById("fromDate");
 const toDate = document.getElementById("toDate");
 const clearFilters = document.getElementById("clearFilters");
 
-/* Auth UI */
-const authLoggedOut = document.getElementById("authLoggedOut");
-const authLoggedIn = document.getElementById("authLoggedIn");
-const emailInput = document.getElementById("emailInput");
-const passInput = document.getElementById("passInput");
-const loginBtn = document.getElementById("loginBtn");
-const signupBtn = document.getElementById("signupBtn");
-const logoutBtn = document.getElementById("logoutBtn");
-const switchBtn = document.getElementById("switchBtn");
+const exportBtn = document.getElementById("exportBtn");
+const importInput = document.getElementById("importInput");
+
 const userPill = document.getElementById("userPill");
 const codePill = document.getElementById("codePill");
+const switchBtn = document.getElementById("switchBtn");
 
-/* Join/Create UI */
 const joinCard = document.getElementById("joinCard");
 const createGalleryBtn = document.getElementById("createGalleryBtn");
 const joinCodeInput = document.getElementById("joinCodeInput");
@@ -92,8 +86,8 @@ let realtimeChannel = null;
 /* =========================
    Helpers
 ========================= */
-function makeCode(len=6){
-  const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function makeCode(len=10){
+  const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no confusing chars
   let out="";
   for(let i=0;i<len;i++) out += chars[Math.floor(Math.random()*chars.length)];
   return out;
@@ -114,11 +108,14 @@ function setTypeFilter(value) {
   const btn = dd.querySelector(".dd-btn");
   const menu = dd.querySelector(".dd-menu");
   const items = Array.from(dd.querySelectorAll(".dd-item"));
+
   function open(){ dd.classList.add("open"); btn.setAttribute("aria-expanded","true"); menu.focus(); }
   function close(){ dd.classList.remove("open"); btn.setAttribute("aria-expanded","false"); }
+
   btn.addEventListener("click", ()=> dd.classList.contains("open") ? close() : open());
   items.forEach(it => it.addEventListener("click", ()=>{ setTypeFilter(it.dataset.value); close(); }));
   document.addEventListener("mousedown",(e)=>{ if(!dd.contains(e.target)) close(); });
+
   setTypeFilter(dd.dataset.value || "all");
 })();
 
@@ -136,11 +133,32 @@ function applyFilters(items){
       const hay = `${it.location_text||""} ${it.note||""}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
-    const base = parseDDMMYYYY(it.taken_at) || (it.created_at ? new Date(it.created_at) : null);
-    if (from && base && base < from) return false;
-    if (toEnd && base && base > toEnd) return false;
+    const base = parseDDMMYYYY(it.taken_at) || new Date(it.created_at || 0);
+    if (from && base < from) return false;
+    if (toEnd && base > toEnd) return false;
     return true;
   });
+}
+
+/* =========================
+   Auth (anonymous)
+========================= */
+async function ensureAnonSession(){
+  const { data } = await supa.auth.getSession();
+  session = data.session || null;
+
+  if (!session) {
+    const { data: s, error } = await supa.auth.signInAnonymously();
+    if (error) {
+      console.error(error);
+      alert("Anonymous sign-in failed. Enable Auth → Providers → Anonymous in Supabase.");
+      return false;
+    }
+    session = s.session;
+  }
+
+  userPill.textContent = `Guest: ${session.user.id.slice(0,8)}`;
+  return true;
 }
 
 /* =========================
@@ -157,7 +175,6 @@ async function signedUrlFor(path){
 }
 
 async function hydrateSignedUrls(rows){
-  // Create signed URLs for grid thumbnails
   const out = [];
   for (const r of rows) {
     const url = await signedUrlFor(r.storage_path);
@@ -245,7 +262,6 @@ function render(){
 async function openViewer(it){
   currentView = it;
 
-  // refresh signed URL for safety (in case expired)
   const fresh = await signedUrlFor(it.storage_path);
   const url = fresh || it._signedUrl;
 
@@ -282,7 +298,6 @@ deleteBtn.addEventListener("click", async () => {
   const ok = confirm("Delete this item?");
   if (!ok) return;
 
-  // delete from storage
   const { error: delErr } = await supa.storage.from(BUCKET).remove([currentView.storage_path]);
   if (delErr) {
     console.error(delErr);
@@ -290,7 +305,6 @@ deleteBtn.addEventListener("click", async () => {
     return;
   }
 
-  // delete row
   const { error: rowErr } = await supa.from("items").delete().eq("id", currentView.id);
   if (rowErr) {
     console.error(rowErr);
@@ -340,7 +354,6 @@ function startRealtime(){
       "postgres_changes",
       { event: "*", schema: "public", table: "items", filter: `code=eq.${currentCode}` },
       async () => {
-        // reload (simple + reliable)
         await loadItems();
       }
     )
@@ -348,61 +361,49 @@ function startRealtime(){
 }
 
 /* =========================
-   Gallery: create / join
+   Gallery: create / join (CODE ONLY via RPC)
 ========================= */
 async function setGallery(codeRaw){
   const code = (codeRaw || "").trim().toUpperCase();
   if (!code) return;
 
-  // load gallery
-  const { data: g, error: gErr } = await supa.from("galleries").select("*").eq("code", code).maybeSingle();
-  if (gErr) { console.error(gErr); alert("Gallery error."); return; }
-  if (!g) { joinStatus.textContent = "Code not found."; return; }
-
-  // join (add uid if missing)
-  const uid = session.user.id;
-  const members = Array.isArray(g.members) ? g.members : [];
-  if (!members.includes(uid)) {
-    const { error: uErr } = await supa
-      .from("galleries")
-      .update({ members: [...members, uid], updated_at: new Date().toISOString() })
-      .eq("code", code);
-    if (uErr) { console.error(uErr); alert("Could not join gallery."); return; }
+  const { data, error } = await supa.rpc("join_gallery_code_only", { p_code: code });
+  if (error) {
+    console.error(error);
+    joinStatus.textContent = "Join failed (RPC error).";
+    return;
+  }
+  if (!data) {
+    joinStatus.textContent = "Code not found.";
+    return;
   }
 
   currentCode = code;
-  localStorage.setItem(`gallery_code_${uid}`, code);
+  localStorage.setItem("gallery_code", code);
 
   codePill.textContent = `Code: ${code}`;
   joinCard.style.display = "none";
   openAdd.disabled = false;
+  exportBtn.disabled = false;
+  importInput.disabled = false;
 
   await loadItems();
   startRealtime();
 }
 
 createGalleryBtn.addEventListener("click", async () => {
-  if (!session) { alert("Please log in first."); return; }
+  if (!session) return;
 
-  // create unique code
-  let code = makeCode(6);
-  for (let i=0;i<8;i++){
-    const { data } = await supa.from("galleries").select("code").eq("code", code).maybeSingle();
-    if (!data) break;
-    code = makeCode(6);
-  }
-
-  const uid = session.user.id;
-  const { error } = await supa.from("galleries").insert({
-    code,
-    created_by: uid,
-    members: [uid],
-  });
-
-  if (error) {
-    console.error(error);
-    alert("Could not create gallery.");
-    return;
+  let code = makeCode(10);
+  for (let i=0;i<12;i++){
+    const { data, error } = await supa.rpc("create_gallery_code_only", { p_code: code });
+    if (error) {
+      console.error(error);
+      alert("Could not create gallery (RPC error).");
+      return;
+    }
+    if (data === true) break; // created
+    code = makeCode(10); // try again
   }
 
   joinStatus.textContent = `Created! Your code is: ${code}`;
@@ -410,12 +411,11 @@ createGalleryBtn.addEventListener("click", async () => {
 });
 
 joinGalleryBtn.addEventListener("click", async () => {
-  if (!session) { alert("Please log in first."); return; }
+  if (!session) return;
   await setGallery(joinCodeInput.value);
 });
 
 switchBtn.addEventListener("click", () => {
-  if (!session) return;
   currentCode = null;
   stopRealtime();
   allItems = [];
@@ -424,6 +424,8 @@ switchBtn.addEventListener("click", () => {
   codePill.textContent = "Code: —";
   joinCard.style.display = "";
   openAdd.disabled = true;
+  exportBtn.disabled = true;
+  importInput.disabled = true;
   joinStatus.textContent = "Enter a code to join, or create a new gallery.";
 });
 
@@ -431,7 +433,7 @@ switchBtn.addEventListener("click", () => {
    Add item (upload)
 ========================= */
 openAdd.addEventListener("click", () => {
-  if (!session || !currentCode) { alert("Log in and join a gallery first."); return; }
+  if (!session || !currentCode) { alert("Join a gallery first."); return; }
   addDialog.showModal();
 });
 
@@ -471,9 +473,6 @@ addForm.addEventListener("submit", async (e) => {
     return;
   }
 
-  // signed url for initial insert + UI (not permanent)
-  const url = await signedUrlFor(storagePath);
-
   const { error: insErr } = await supa.from("items").insert({
     code: currentCode,
     type,
@@ -483,94 +482,48 @@ addForm.addEventListener("submit", async (e) => {
     location_text: (locationText.value || "").trim() || null,
     note: (note.value || "").trim() || null,
     storage_path: storagePath,
-    public_url: url || "", // kept as field; not truly public (bucket is private)
+    public_url: null,
     created_by: uid,
   });
 
   if (insErr) {
     console.error(insErr);
     alert("Could not save metadata.");
-    // optional rollback
     await supa.storage.from(BUCKET).remove([storagePath]);
     return;
   }
 
   closeAddDialog();
-  // realtime will refresh, but do an instant refresh too:
   await loadItems();
 });
 
 /* =========================
-   Auth (email/password)
+   Export / Import (JSON) – optional
 ========================= */
-async function refreshSessionUI(){
-  const { data } = await supa.auth.getSession();
-  session = data.session || null;
+exportBtn.addEventListener("click", async () => {
+  if (!currentCode) return;
 
-  if (!session) {
-    authLoggedOut.hidden = false;
-    authLoggedIn.hidden = true;
+  const { data, error } = await supa.from("items").select("*").eq("code", currentCode);
+  if (error) { console.error(error); alert("Export failed."); return; }
 
-    joinCard.style.display = "";
-    openAdd.disabled = true;
-    userPill.textContent = "—";
-    codePill.textContent = "Code: —";
+  const json = JSON.stringify({ version: 1, code: currentCode, exportedAt: new Date().toISOString(), items: data || [] }, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
 
-    stopRealtime();
-    currentCode = null;
-    allItems = [];
-    render();
-    return;
-  }
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `gallery-${currentCode}-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 
-  authLoggedOut.hidden = true;
-  authLoggedIn.hidden = false;
-
-  userPill.textContent = session.user.email || session.user.id;
-
-  // restore last code
-  const saved = localStorage.getItem(`gallery_code_${session.user.id}`);
-  if (saved) {
-    joinStatus.textContent = "Restoring your last gallery...";
-    await setGallery(saved);
-  } else {
-    joinCard.style.display = "";
-    openAdd.disabled = true;
-    codePill.textContent = "Code: —";
-    joinStatus.textContent = "Create a gallery or join with a code.";
-  }
-}
-
-signupBtn.addEventListener("click", async () => {
-  const email = (emailInput.value || "").trim();
-  const pass = (passInput.value || "").trim();
-  if (!email || !pass) { alert("Email + password required."); return; }
-
-  const { error } = await supa.auth.signUp({ email, password: pass });
-  if (error) { alert(error.message); return; }
-
-  alert("Signed up! Now log in.");
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
 });
 
-loginBtn.addEventListener("click", async () => {
-  const email = (emailInput.value || "").trim();
-  const pass = (passInput.value || "").trim();
-  if (!email || !pass) { alert("Email + password required."); return; }
-
-  const { error } = await supa.auth.signInWithPassword({ email, password: pass });
-  if (error) { alert(error.message); return; }
-
-  await refreshSessionUI();
-});
-
-logoutBtn.addEventListener("click", async () => {
-  await supa.auth.signOut();
-  await refreshSessionUI();
-});
-
-// listen for auth changes
-supa.auth.onAuthStateChange(async () => {
-  await refreshSessionUI();
+importInput.addEventListener("change", async () => {
+  // NOTE: this imports metadata only (not files). Keeping it simple.
+  importInput.value = "";
+  alert("Import is disabled for now (metadata-only). If you want full import including files, tell me.");
 });
 
 /* =========================
@@ -637,10 +590,6 @@ function ensureDatepicker() {
     if (!dpEl || dpEl.style.display === "none") return;
     if (dpEl.contains(e.target)) return;
     if (dpActiveInput && (e.target === dpActiveInput || dpActiveInput.contains(e.target))) return;
-
-    const activeDialog = dpActiveInput?.closest("dialog");
-    if (activeDialog && activeDialog.contains(e.target)) return;
-
     closeDatepicker();
   });
 
@@ -661,10 +610,6 @@ function ensureDatepicker() {
 function openDatepickerForInput(input) {
   ensureDatepicker();
   dpActiveInput = input;
-
-  const hostDialog = input.closest("dialog");
-  if (hostDialog) hostDialog.appendChild(dpEl);
-  else document.body.appendChild(dpEl);
 
   const parsed = parseDDMMYYYY(input.value);
   const base = parsed || new Date();
@@ -726,7 +671,7 @@ function renderDatepicker() {
   }
 
   const first = new Date(year, month, 1, 12, 0, 0);
-  const firstDow = (first.getDay() + 6) % 7;
+  const firstDow = (first.getDay() + 6) % 7; // monday start
   const start = new Date(year, month, 1 - firstDow, 12, 0, 0);
 
   const selected = dpActiveInput ? parseDDMMYYYY(dpActiveInput.value) : null;
@@ -768,7 +713,6 @@ function bindDatepicker(input) {
   input.addEventListener("blur", () => {
     const active = document.activeElement;
     if (dpEl && dpEl.contains(active)) return;
-
     if (!input.value) return;
     if (!parseDDMMYYYY(input.value)) {
       input.value = "";
@@ -783,7 +727,24 @@ document.querySelectorAll(".date-input").forEach(bindDatepicker);
 ========================= */
 (async function init(){
   openAdd.disabled = true;
-  joinStatus.textContent = "Log in, then create or join a gallery.";
-  await refreshSessionUI();
+  exportBtn.disabled = true;
+  importInput.disabled = true;
+
+  joinStatus.textContent = "Connecting…";
+
+  const ok = await ensureAnonSession();
+  if (!ok) return;
+
+  joinStatus.textContent = "Enter a code to join, or create a new gallery.";
+
+  const saved = localStorage.getItem("gallery_code");
+  if (saved) {
+    joinStatus.textContent = "Restoring your last gallery…";
+    await setGallery(saved);
+  } else {
+    joinCard.style.display = "";
+    codePill.textContent = "Code: —";
+  }
+
   render();
 })();
