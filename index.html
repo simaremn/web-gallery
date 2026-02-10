@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Our Gallery</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- AUTH BAR -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">❤</div>
+      <div>
+        <div class="title">Our Gallery</div>
+        <div class="subtitle">Photos, videos, and memories</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <!-- logged out -->
+      <div id="authLoggedOut" class="authRow">
+        <input id="emailInput" class="input authInput" placeholder="Email" autocomplete="email" />
+        <input id="passInput" class="input authInput" placeholder="Password" type="password" autocomplete="current-password" />
+        <button id="loginBtn" class="btn primary" type="button">Log in</button>
+        <button id="signupBtn" class="btn" type="button">Sign up</button>
+      </div>
+
+      <!-- logged in -->
+      <div id="authLoggedIn" class="authRow" hidden>
+        <span class="pill" id="userPill">—</span>
+        <span class="pill" id="codePill">Code: —</span>
+        <button id="switchBtn" class="btn ghost" type="button">Switch code</button>
+        <button id="logoutBtn" class="btn" type="button">Log out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- JOIN / CREATE -->
+    <section id="joinCard" class="card joinCard">
+      <h2 class="joinTitle">Create or join a gallery</h2>
+      <p class="joinHint">Only members with the same code can see the same gallery.</p>
+
+      <div class="row">
+        <button id="createGalleryBtn" class="btn primary" type="button">Create new gallery</button>
+        <input id="joinCodeInput" class="input" placeholder="Enter code (e.g. 7H3KQ9)" autocomplete="off" />
+        <button id="joinGalleryBtn" class="btn" type="button">Join</button>
+      </div>
+
+      <p class="joinSmall" id="joinStatus">—</p>
+    </section>
+
+    <!-- FILTERS + GRID -->
+    <section class="filters card">
+      <div class="row">
+        <input id="searchInput" class="input" placeholder="Search by note/location..." />
+
+        <!-- Custom dropdown -->
+        <div id="typeFilter" class="dd" data-value="all">
+          <button type="button" class="dd-btn" aria-haspopup="listbox" aria-expanded="false">
+            <span class="dd-label">All</span>
+            <span class="dd-caret">▾</span>
+          </button>
+          <div class="dd-menu" role="listbox" tabindex="-1" aria-label="Filter by type">
+            <button type="button" class="dd-item" role="option" data-value="all" aria-selected="true">All</button>
+            <button type="button" class="dd-item" role="option" data-value="image" aria-selected="false">Photos</button>
+            <button type="button" class="dd-item" role="option" data-value="video" aria-selected="false">Videos</button>
+          </div>
+        </div>
+
+        <input id="fromDate" class="input date-input" type="text"
+               placeholder="From (DD/MM/YYYY)" inputmode="numeric" autocomplete="off" />
+        <input id="toDate" class="input date-input" type="text"
+               placeholder="To (DD/MM/YYYY)" inputmode="numeric" autocomplete="off" />
+
+        <button id="clearFilters" class="btn" type="button">Clear</button>
+      </div>
+    </section>
+
+    <section class="actionsRow">
+      <button id="openAdd" class="btn primary" type="button" disabled>+ Add</button>
+    </section>
+
+    <section id="grid" class="grid" aria-live="polite"></section>
+
+    <p id="emptyState" class="empty" hidden>
+      No uploads yet. Click “Add” to get started ✨
+    </p>
+  </main>
+
+  <!-- MODAL: Add -->
+  <dialog id="addDialog" class="modal">
+    <form id="addForm" class="modalCard">
+      <div class="modalHead">
+        <h2>Add a memory</h2>
+        <button type="button" class="iconbtn" id="closeAdd" aria-label="Close">✕</button>
+      </div>
+
+      <div class="formGrid">
+        <label class="field">
+          <span>File (photo/video)</span>
+          <input id="fileInput" type="file" accept="image/*,video/*" required />
+          <small>Works best with .jpg/.png/.mp4/.mov</small>
+        </label>
+
+        <label class="field">
+          <span>Date (when)</span>
+          <input id="takenAt" type="text" class="input date-input"
+                 placeholder="DD/MM/YYYY" inputmode="numeric" autocomplete="off" />
+          <small>Click to pick from the calendar</small>
+        </label>
+
+        <label class="field">
+          <span>Location (where)</span>
+          <input id="locationText" type="text" class="input" placeholder="e.g. Sofia, Vitosha" />
+        </label>
+
+        <label class="field full">
+          <span>Note</span>
+          <textarea id="note" class="input" rows="3" placeholder="What do you remember about this moment?"></textarea>
+        </label>
+      </div>
+
+      <div class="modalFoot">
+        <button class="btn" type="button" id="cancelAdd">Cancel</button>
+        <button class="btn primary" type="submit">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- MODAL: View -->
+  <dialog id="viewDialog" class="modal">
+    <div class="modalCard">
+      <div class="modalHead">
+        <h2 id="viewTitle">Preview</h2>
+        <button type="button" class="iconbtn" id="closeView" aria-label="Close">✕</button>
+      </div>
+
+      <div id="viewer" class="viewer"></div>
+
+      <div class="meta">
+        <div><b>When:</b> <span id="metaWhen">—</span></div>
+        <div><b>Where:</b> <span id="metaWhere">—</span></div>
+        <div class="full"><b>Note:</b> <span id="metaNote">—</span></div>
+      </div>
+
+      <div class="modalFoot">
+        <a id="downloadLink" class="btn ghost" download>Download</a>
+        <button id="deleteBtn" class="btn danger" type="button">Delete</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Supabase JS (no npm) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,459 @@
+:root{
+  --bg:#0b0f19;
+  --card:#121a2a;
+  --card2:#0f1524;
+  --text:#e8eefc;
+  --muted:#a8b3cf;
+  --accent:#7c5cff;
+  --danger:#ff4d6d;
+  --border:rgba(255,255,255,.10);
+  --shadow: 0 10px 30px rgba(0,0,0,.35);
+  --radius:18px;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  background: radial-gradient(1200px 700px at 20% 0%, rgba(124,92,255,.25), transparent 60%),
+              radial-gradient(900px 600px at 90% 20%, rgba(255,77,109,.18), transparent 55%),
+              var(--bg);
+  color:var(--text);
+}
+
+.topbar{
+  position:sticky; top:0; z-index:10;
+  display:flex; gap:16px; align-items:center; justify-content:space-between;
+  padding:16px 18px;
+  background: rgba(11,15,25,.7);
+  backdrop-filter: blur(10px);
+  border-bottom:1px solid var(--border);
+}
+
+.brand{display:flex; gap:12px; align-items:center}
+.logo{
+  width:44px; height:44px; border-radius:14px;
+  display:grid; place-items:center;
+  background: linear-gradient(135deg, rgba(124,92,255,.9), rgba(255,77,109,.8));
+  box-shadow: var(--shadow);
+}
+.title{font-weight:800; letter-spacing:.2px}
+.subtitle{font-size:12px; color:var(--muted); margin-top:2px}
+
+.actions{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+
+.container{max-width:1100px; margin:18px auto; padding:0 16px 40px}
+
+.card{
+  background: linear-gradient(180deg, rgba(18,26,42,.9), rgba(15,21,36,.9));
+  border:1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.filters{padding:14px}
+.row{display:flex; gap:10px; flex-wrap:wrap}
+
+.input, select, textarea{
+  width:100%;
+  background: rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);
+  color:var(--text);
+  padding:10px 12px;
+  border-radius:14px;
+  outline:none;
+}
+.input:focus, select:focus, textarea:focus{border-color: rgba(124,92,255,.7)}
+
+.date-input{ cursor: pointer; }
+.date-input::placeholder{ color: rgba(168,179,207,.75); }
+
+.btn{
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  color:var(--text);
+  padding:10px 12px;
+  border-radius:14px;
+  cursor:pointer;
+  transition:.15s transform, .15s opacity, .15s background;
+  white-space:nowrap;
+}
+.btn:hover{transform: translateY(-1px)}
+.btn.primary{
+  background: linear-gradient(135deg, rgba(124,92,255,.95), rgba(124,92,255,.65));
+  border-color: rgba(124,92,255,.6);
+}
+.btn.ghost{background: transparent}
+.btn.danger{
+  background: rgba(255,77,109,.12);
+  border-color: rgba(255,77,109,.35);
+  color: #ffdbe2;
+}
+.filebtn{position:relative; overflow:hidden}
+
+.grid{
+  margin-top:16px;
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap:12px;
+}
+
+.tile{
+  border-radius: var(--radius);
+  overflow:hidden;
+  border:1px solid var(--border);
+  background: rgba(255,255,255,.04);
+  box-shadow: var(--shadow);
+  cursor:pointer;
+  display:flex;
+  flex-direction:column;
+}
+.thumb{
+  width:100%;
+  aspect-ratio: 4/3;
+  background: rgba(255,255,255,.04);
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+}
+.thumb img, .thumb video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+.tileBody{padding:10px 12px}
+.badge{
+  display:inline-flex;
+  gap:6px;
+  align-items:center;
+  font-size:12px;
+  color:var(--muted);
+}
+
+.metaLine{
+  margin-top:6px;
+  font-size:13px;
+  color:var(--text);
+  opacity:.95;
+  overflow:hidden;
+
+  /* WebKit clamp */
+  display:-webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+
+  /* Standard property (silences warnings / future-proof) */
+  line-clamp: 2;
+}
+
+.empty{
+  margin:22px 6px;
+  color: var(--muted);
+  text-align:center;
+}
+
+.modal::backdrop{background: rgba(0,0,0,.6)}
+.modal{
+  border:none;
+  padding:0;
+  background:transparent;
+}
+.modalCard{
+  width:min(900px, calc(100vw - 24px));
+  border-radius: var(--radius);
+  border:1px solid var(--border);
+  background: linear-gradient(180deg, rgba(18,26,42,.98), rgba(15,21,36,.98));
+  box-shadow: var(--shadow);
+  padding:14px;
+}
+
+.modalHead{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px; padding:6px 4px 10px;
+}
+.modalHead h2{margin:0; font-size:18px}
+.iconbtn{
+  background: transparent;
+  border:1px solid rgba(255,255,255,.14);
+  color:var(--text);
+  width:36px; height:36px;
+  border-radius:12px;
+  cursor:pointer;
+}
+
+.modalHead h2{
+    color:var(--muted);
+}
+
+.formGrid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:12px;
+}
+.field span{display:block; font-size:12px; color:var(--muted); margin:0 0 6px 2px}
+.field small{display:block; color:var(--muted); opacity:.9; margin-top:6px}
+.field.full{grid-column:1 / -1}
+
+.modalFoot{
+  margin-top:12px;
+  display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;
+}
+
+.viewer{
+  border-radius: 16px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.25);
+  max-height: 60vh;
+}
+.viewer img, .viewer video{
+  width:100%;
+  height:auto;
+  display:block;
+}
+.viewer video{max-height:60vh}
+
+.meta{
+  margin-top:10px;
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:8px 14px;
+  color: var(--muted);
+  font-size:13px;
+}
+.meta .full{grid-column: 1 / -1}
+
+/* ===== Custom Date Picker ===== */
+.datepicker {
+  position: fixed;            /* important: works nicely over <dialog> */
+  z-index: 9999;
+  width: 290px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: linear-gradient(180deg, rgba(18,26,42,.98), rgba(15,21,36,.98));
+  box-shadow: 0 20px 50px rgba(0,0,0,.5);
+  padding: 10px;
+  user-select: none;
+}
+
+.dp-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding: 6px 6px 10px;
+}
+.dp-title{
+  font-weight: 700;
+  font-size: 14px;
+  color: rgba(255,255,255,.92);
+}
+.dp-nav{ display:flex; gap:8px; }
+.dp-btn{
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.9);
+  cursor: pointer;
+}
+.dp-btn:hover{ transform: translateY(-1px); }
+
+.dp-grid{
+  display:grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  padding: 6px;
+}
+.dp-dow{
+  font-size: 11px;
+  color: rgba(255,255,255,.55);
+  text-align:center;
+  padding: 6px 0;
+}
+.dp-day{
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.92);
+  cursor: pointer;
+  display:grid;
+  place-items:center;
+  font-size: 13px;
+}
+.dp-day:hover{ background: rgba(255,255,255,.08); }
+.dp-day.muted{ opacity: .45; }
+.dp-day.selected{
+  border-color: rgba(124,92,255,.65);
+  background: rgba(124,92,255,.20);
+}
+
+.dp-foot{
+  display:flex;
+  justify-content: space-between;
+  gap:10px;
+  padding: 8px 6px 4px;
+}
+.dp-link{
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,.75);
+  cursor: pointer;
+  padding: 8px 10px;
+  border-radius: 12px;
+}
+.dp-link:hover{ background: rgba(255,255,255,.06); }
+
+/* allow overlays inside dialogs */
+dialog { overflow: visible; }
+.modalCard { overflow: visible; }
+
+/* ===== Custom Dropdown ===== */
+.dd{
+  position: relative;
+  min-width: 160px;
+  flex: 1 1 160px; /* да се държи като input в row */
+}
+
+.dd-btn{
+  width: 100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: var(--text);
+  cursor:pointer;
+}
+
+.dd-btn:focus{
+  outline:none;
+  border-color: rgba(124,92,255,.7);
+}
+
+.dd-label{
+  font-size: 14px;
+  color: var(--text);
+}
+
+.dd-caret{
+  color: rgba(232,238,252,.75);
+  font-size: 12px;
+}
+
+.dd-menu{
+  position: absolute;
+  left: 0;
+  top: calc(100% + 8px);
+  width: 100%;
+  z-index: 9999;
+
+  display:none;
+  padding:8px;
+  border-radius: 16px;
+  border:1px solid rgba(255,255,255,.14);
+  background: linear-gradient(180deg, rgba(18,26,42,.98), rgba(15,21,36,.98));
+  box-shadow: 0 20px 50px rgba(0,0,0,.5);
+}
+
+.dd.open .dd-menu{ display:block; }
+
+.dd-item{
+  width:100%;
+  text-align:left;
+  padding:10px 10px;
+  border-radius:12px;
+  border:1px solid transparent;
+  background: transparent;
+  color: rgba(232,238,252,.92);
+  cursor:pointer;
+}
+
+.dd-item:hover{
+  background: rgba(255,255,255,.06);
+}
+
+.dd-item[aria-selected="true"]{
+  border-color: rgba(124,92,255,.45);
+  background: rgba(124,92,255,.16);
+}
+
+/* ===== Auth / Join UI ===== */
+.authRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.authInput{ min-width: 180px; max-width: 220px; }
+
+.pill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  color: rgba(232,238,252,.92);
+  font-size: 12px;
+}
+
+.joinCard{ padding:14px; margin-bottom: 14px; }
+.joinTitle{ margin: 0 0 6px; font-size: 16px; }
+.joinHint{ margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+.joinSmall{ margin: 10px 2px 0; color: var(--muted); font-size: 12px; }
+
+.actionsRow{ display:flex; justify-content:flex-end; margin: 12px 0 0; }
+
+/* Dialog overlay fixes for datepicker */
+dialog { overflow: visible; }
+.modalCard { overflow: visible; }
+
+/* ===== Custom dropdown styling ===== */
+.dd{ position:relative; min-width: 170px; flex: 1; }
+.dd-btn{
+  width:100%;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  border-radius:14px;
+  cursor:pointer;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: var(--text);
+}
+.dd-caret{ opacity:.8; }
+.dd-menu{
+  position:absolute;
+  top: calc(100% + 8px);
+  left:0;
+  width:100%;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.14);
+  background: linear-gradient(180deg, rgba(18,26,42,.98), rgba(15,21,36,.98));
+  box-shadow: 0 20px 50px rgba(0,0,0,.5);
+  padding:6px;
+  display:none;
+  z-index: 50;
+}
+.dd.open .dd-menu{ display:block; }
+.dd-item{
+  width:100%;
+  text-align:left;
+  padding:10px 10px;
+  border-radius:12px;
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,.92);
+  cursor:pointer;
+}
+.dd-item[aria-selected="true"]{
+  background: rgba(124,92,255,.18);
+  outline: 1px solid rgba(124,92,255,.35);
+}
+.dd-item:hover{ background: rgba(255,255,255,.06); }
