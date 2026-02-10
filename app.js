@@ -8,13 +8,13 @@
    CONFIG (YOURS)
 ========================= */
 const SUPABASE_URL = "https://eyrmotpdjzougbjwtpyr.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cm1vdHBkanpvdWdiand0cHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2ODEzODAsImV4cCI6MjA4NjI1NzM4MH0.4E_1J2qnG1hLarenspd3CSg8DUQitUWcywoy3sb105k"; // keep your anon key here
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cm1vdHBkanpvdWdiand0cHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2ODEzODAsImV4cCI6MjA4NjI1NzM4MH0.4E_1J2qnG1hLarenspd3CSg8DUQitUWcywoy3sb105k";
 const BUCKET = "media";
 const SIGNED_URL_SECONDS = 60 * 60; // 1 hour
 
 // Create client (UMD global "supabase" expected)
 if (typeof supabase === "undefined" || !supabase.createClient) {
-  alert("Supabase library not loaded. Check your <script src=...supabase.min.js> tag.");
+  alert("Supabase library not loaded. Check your <script src=...supabase-js@2> tag.");
   throw new Error("Supabase UMD not loaded");
 }
 const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -24,6 +24,7 @@ const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 ========================= */
 function pad2(n) { return String(n).padStart(2, "0"); }
 function formatDDMMYYYY(d) { return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`; }
+
 function parseDDMMYYYY(s) {
   if (!s) return null;
   const m = String(s).trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
@@ -31,11 +32,12 @@ function parseDDMMYYYY(s) {
   const dd = +m[1], mm = +m[2], yyyy = +m[3];
   if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
 
-  // Noon to avoid timezone shifts
+  // Noon avoids timezone shifts
   const d = new Date(yyyy, mm - 1, dd, 12, 0, 0);
   if (d.getFullYear() !== yyyy || d.getMonth() !== (mm - 1) || d.getDate() !== dd) return null;
   return d;
 }
+
 function formatWhen(value) {
   if (!value) return "—";
   const d = parseDDMMYYYY(value) || new Date(value);
@@ -48,7 +50,6 @@ function formatWhen(value) {
 ========================= */
 const $ = (id) => document.getElementById(id);
 function on(el, ev, fn) { if (el) el.addEventListener(ev, fn); }
-function setHidden(el, hidden) { if (el) el.hidden = !!hidden; }
 function setDisabled(el, disabled) { if (el) el.disabled = !!disabled; }
 function setText(el, text) { if (el) el.textContent = text; }
 
@@ -83,11 +84,10 @@ const fromDate = $("fromDate");
 const toDate = $("toDate");
 const clearFilters = $("clearFilters");
 
-// Optional (may not exist in your HTML)
+// Optional
 const exportBtn = $("exportBtn");
 const importInput = $("importInput");
 
-// Auth-ish pills/buttons (in your HTML they exist for code-only UI)
 const userPill = $("userPill");
 const codePill = $("codePill");
 const switchBtn = $("switchBtn");
@@ -131,6 +131,7 @@ function isOfflineFetchError(err) {
 ========================= */
 function setTypeFilter(value) {
   if (!typeFilter) return;
+
   typeFilter.dataset.value = value;
 
   const label = typeFilter.querySelector(".dd-label");
@@ -206,11 +207,10 @@ async function ensureAnonSession() {
     return true;
   } catch (err) {
     console.error("Anon auth error:", err);
-
     if (isOfflineFetchError(err)) {
-      alert("It looks like the device has no internet (or Safari/Chrome blocked the request). Check Wi-Fi/4G and try again.");
+      alert("Looks like there is no internet (or the request is blocked). Check Wi-Fi/4G and try again.");
     } else {
-      alert("Anonymous sign-in failed. In Supabase: Auth → Providers → Anonymous must be enabled.");
+      alert("Anonymous sign-in failed. Supabase: Auth → Providers → Anonymous must be enabled.");
     }
     return false;
   }
@@ -534,14 +534,17 @@ on(addForm, "submit", async (e) => {
     upsert: false,
     contentType: f.type,
   });
+
   if (upErr) {
-    console.error(upErr);
-    alert("Upload failed.");
+    console.error("Upload error:", upErr);
+    alert("Upload failed:\n" + (upErr.message || JSON.stringify(upErr)));
     return;
   }
 
-  // Insert metadata
-  const { error: insErr } = await supa.from("items").insert({
+  // Create signed URL (also ensures public_url is NOT null if DB requires it)
+  const signed = await signedUrlFor(storagePath);
+
+  const payload = {
     code: currentCode,
     type,
     mime: f.type,
@@ -550,19 +553,30 @@ on(addForm, "submit", async (e) => {
     location_text: (locationText?.value || "").trim() || null,
     note: (note?.value || "").trim() || null,
     storage_path: storagePath,
-    public_url: null,
+    public_url: signed || "",      // ✅ IMPORTANT FIX (never null)
     created_by: uid,
-  });
+  };
+
+  // Insert metadata
+  const { error: insErr } = await supa.from("items").insert(payload);
 
   if (insErr) {
-    console.error(insErr);
-    alert("Could not save metadata.");
+    console.error("INSERT items error:", insErr, payload);
+
+    alert(
+      "Could not save metadata:\n" +
+      (insErr.message || "no message") +
+      "\n\n" +
+      JSON.stringify(insErr, null, 2)
+    );
+
+    // rollback: remove uploaded file
     await supa.storage.from(BUCKET).remove([storagePath]);
     return;
   }
 
   closeAddDialog();
-  await loadItems(); // realtime ще го хване, но това е моментално
+  await loadItems();
 });
 
 /* =========================
@@ -572,7 +586,11 @@ on(exportBtn, "click", async () => {
   if (!currentCode) return;
 
   const { data, error } = await supa.from("items").select("*").eq("code", currentCode);
-  if (error) { console.error(error); alert("Export failed."); return; }
+  if (error) {
+    console.error(error);
+    alert("Export failed:\n" + (error.message || JSON.stringify(error)));
+    return;
+  }
 
   const json = JSON.stringify(
     { version: 1, code: currentCode, exportedAt: new Date().toISOString(), items: data || [] },
@@ -588,11 +606,11 @@ on(exportBtn, "click", async () => {
   document.body.appendChild(a);
   a.click();
   a.remove();
+
   setTimeout(() => URL.revokeObjectURL(url), 1500);
 });
 
 on(importInput, "change", async () => {
-  // metadata-only stub
   if (importInput) importInput.value = "";
   alert("Import is disabled for now (metadata-only).");
 });
@@ -613,8 +631,6 @@ on(clearFilters, "click", () => {
 
 /* =========================
    Custom Date Picker (dialog-safe)
-   - Appends into the same <dialog> if input is inside it
-   - Works on iOS top-layer dialogs
 ========================= */
 const MONTHS_EN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const DOW_EN = ["Mo","Tu","We","Th","Fr","Sa","Su"];
@@ -622,7 +638,7 @@ const DOW_EN = ["Mo","Tu","We","Th","Fr","Sa","Su"];
 let dpEl = null;
 let dpActiveInput = null;
 let dpMonth = null;
-let dpHost = null; // current host (dialog or body)
+let dpHost = null;
 
 function ensureDatepicker() {
   if (dpEl) return dpEl;
@@ -644,7 +660,6 @@ function ensureDatepicker() {
       <button type="button" class="dp-link" id="dpToday">Today</button>
     </div>
   `;
-
   document.body.appendChild(dpEl);
 
   dpEl.querySelector("#dpPrev").addEventListener("click", () => shiftMonth(-1));
@@ -664,13 +679,11 @@ function ensureDatepicker() {
     render();
   });
 
-  // Close rules
   document.addEventListener("mousedown", (e) => {
     if (!dpEl || dpEl.style.display === "none") return;
     if (dpEl.contains(e.target)) return;
     if (dpActiveInput && (e.target === dpActiveInput || dpActiveInput.contains(e.target))) return;
 
-    // If click is inside the same dialog host, keep open
     const activeDialog = dpActiveInput?.closest("dialog");
     if (activeDialog && activeDialog.contains(e.target)) return;
 
@@ -705,7 +718,6 @@ function openDatepickerForInput(input) {
   ensureDatepicker();
   dpActiveInput = input;
 
-  // Move picker inside dialog if needed
   mountDatepickerToHost(input);
 
   const parsed = parseDDMMYYYY(input.value);
@@ -728,7 +740,6 @@ function positionDatepicker(input) {
   let top = r.bottom + 8;
   let left = r.left;
 
-  // Since dpEl is position: fixed (in your CSS), we use viewport coords
   if (top + dpEl.offsetHeight > window.innerHeight - 10) {
     top = Math.max(10, r.top - dpEl.offsetHeight - 8);
   }
@@ -802,7 +813,6 @@ function bindDatepicker(input) {
   input.addEventListener("focus", () => openDatepickerForInput(input));
   input.addEventListener("click", () => openDatepickerForInput(input));
 
-  // typing mask: 12122026 -> 12/12/2026
   input.addEventListener("input", () => {
     const raw = input.value.replace(/[^\d]/g, "").slice(0, 8);
     let out = raw;
@@ -812,7 +822,6 @@ function bindDatepicker(input) {
   });
 
   input.addEventListener("blur", () => {
-    // if focus moved into picker, don't validate/clear yet
     const active = document.activeElement;
     if (dpEl && dpEl.contains(active)) return;
 
@@ -824,7 +833,6 @@ function bindDatepicker(input) {
   });
 }
 
-// Bind to all .date-input (takenAt, fromDate, toDate)
 document.querySelectorAll(".date-input").forEach(bindDatepicker);
 
 /* =========================
