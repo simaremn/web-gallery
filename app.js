@@ -1,78 +1,102 @@
+/* =========================================================
+   SUPABASE + CODE-ONLY GALLERY (Anonymous)
+   Storage path: media/{CODE}/{UID}/{timestamp}_{filename}
+   Date format: DD/MM/YYYY
+========================================================= */
+
 /* =========================
    CONFIG (YOURS)
 ========================= */
 const SUPABASE_URL = "https://eyrmotpdjzougbjwtpyr.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cm1vdHBkanpvdWdiand0cHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2ODEzODAsImV4cCI6MjA4NjI1NzM4MH0.4E_1J2qnG1hLarenspd3CSg8DUQitUWcywoy3sb105k";
-const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cm1vdHBkanpvdWdiand0cHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2ODEzODAsImV4cCI6MjA4NjI1NzM4MH0.4E_1J2qnG1hLarenspd3CSg8DUQitUWcywoy3sb105k"; // keep your anon key here
 const BUCKET = "media";
 const SIGNED_URL_SECONDS = 60 * 60; // 1 hour
+
+// Create client (UMD global "supabase" expected)
+if (typeof supabase === "undefined" || !supabase.createClient) {
+  alert("Supabase library not loaded. Check your <script src=...supabase.min.js> tag.");
+  throw new Error("Supabase UMD not loaded");
+}
+const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* =========================
    Date Helpers (DD/MM/YYYY)
 ========================= */
-function pad2(n){ return String(n).padStart(2,"0"); }
-function formatDDMMYYYY(d){ return `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${d.getFullYear()}`; }
-function parseDDMMYYYY(s){
-  if(!s) return null;
+function pad2(n) { return String(n).padStart(2, "0"); }
+function formatDDMMYYYY(d) { return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`; }
+function parseDDMMYYYY(s) {
+  if (!s) return null;
   const m = String(s).trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if(!m) return null;
-  const dd=+m[1], mm=+m[2], yyyy=+m[3];
-  if(mm<1||mm>12||dd<1||dd>31) return null;
-  const d = new Date(yyyy, mm-1, dd, 12,0,0); // noon avoids day shift
-  if(d.getFullYear()!==yyyy||d.getMonth()!==(mm-1)||d.getDate()!==dd) return null;
+  if (!m) return null;
+  const dd = +m[1], mm = +m[2], yyyy = +m[3];
+  if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+
+  // Noon to avoid timezone shifts
+  const d = new Date(yyyy, mm - 1, dd, 12, 0, 0);
+  if (d.getFullYear() !== yyyy || d.getMonth() !== (mm - 1) || d.getDate() !== dd) return null;
   return d;
 }
-function formatWhen(value){
-  if(!value) return "—";
+function formatWhen(value) {
+  if (!value) return "—";
   const d = parseDDMMYYYY(value) || new Date(value);
-  if(Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "—";
   return formatDDMMYYYY(d);
 }
 
 /* =========================
+   UI Helpers (safe getters)
+========================= */
+const $ = (id) => document.getElementById(id);
+function on(el, ev, fn) { if (el) el.addEventListener(ev, fn); }
+function setHidden(el, hidden) { if (el) el.hidden = !!hidden; }
+function setDisabled(el, disabled) { if (el) el.disabled = !!disabled; }
+function setText(el, text) { if (el) el.textContent = text; }
+
+/* =========================
    UI Elements
 ========================= */
-const grid = document.getElementById("grid");
-const emptyState = document.getElementById("emptyState");
+const grid = $("grid");
+const emptyState = $("emptyState");
 
-const addDialog = document.getElementById("addDialog");
-const openAdd = document.getElementById("openAdd");
-const closeAdd = document.getElementById("closeAdd");
-const cancelAdd = document.getElementById("cancelAdd");
-const addForm = document.getElementById("addForm");
-const fileInput = document.getElementById("fileInput");
-const takenAt = document.getElementById("takenAt");
-const locationText = document.getElementById("locationText");
-const note = document.getElementById("note");
+const addDialog = $("addDialog");
+const openAdd = $("openAdd");
+const closeAdd = $("closeAdd");
+const cancelAdd = $("cancelAdd");
+const addForm = $("addForm");
+const fileInput = $("fileInput");
+const takenAt = $("takenAt");
+const locationText = $("locationText");
+const note = $("note");
 
-const viewDialog = document.getElementById("viewDialog");
-const closeView = document.getElementById("closeView");
-const viewer = document.getElementById("viewer");
-const metaWhen = document.getElementById("metaWhen");
-const metaWhere = document.getElementById("metaWhere");
-const metaNote = document.getElementById("metaNote");
-const deleteBtn = document.getElementById("deleteBtn");
-const downloadLink = document.getElementById("downloadLink");
+const viewDialog = $("viewDialog");
+const closeView = $("closeView");
+const viewer = $("viewer");
+const metaWhen = $("metaWhen");
+const metaWhere = $("metaWhere");
+const metaNote = $("metaNote");
+const deleteBtn = $("deleteBtn");
+const downloadLink = $("downloadLink");
 
-const searchInput = document.getElementById("searchInput");
-const typeFilter = document.getElementById("typeFilter");
-const fromDate = document.getElementById("fromDate");
-const toDate = document.getElementById("toDate");
-const clearFilters = document.getElementById("clearFilters");
+const searchInput = $("searchInput");
+const typeFilter = $("typeFilter"); // custom dropdown container .dd
+const fromDate = $("fromDate");
+const toDate = $("toDate");
+const clearFilters = $("clearFilters");
 
-const exportBtn = document.getElementById("exportBtn");
-const importInput = document.getElementById("importInput");
+// Optional (may not exist in your HTML)
+const exportBtn = $("exportBtn");
+const importInput = $("importInput");
 
-const userPill = document.getElementById("userPill");
-const codePill = document.getElementById("codePill");
-const switchBtn = document.getElementById("switchBtn");
+// Auth-ish pills/buttons (in your HTML they exist for code-only UI)
+const userPill = $("userPill");
+const codePill = $("codePill");
+const switchBtn = $("switchBtn");
 
-const joinCard = document.getElementById("joinCard");
-const createGalleryBtn = document.getElementById("createGalleryBtn");
-const joinCodeInput = document.getElementById("joinCodeInput");
-const joinGalleryBtn = document.getElementById("joinGalleryBtn");
-const joinStatus = document.getElementById("joinStatus");
+const joinCard = $("joinCard");
+const createGalleryBtn = $("createGalleryBtn");
+const joinCodeInput = $("joinCodeInput");
+const joinGalleryBtn = $("joinGalleryBtn");
+const joinStatus = $("joinStatus");
 
 /* =========================
    State
@@ -86,56 +110,80 @@ let realtimeChannel = null;
 /* =========================
    Helpers
 ========================= */
-function makeCode(len=10){
-  const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no confusing chars
-  let out="";
-  for(let i=0;i<len;i++) out += chars[Math.floor(Math.random()*chars.length)];
+function makeCode(len = 10) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let out = "";
+  for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
   return out;
 }
 
+function isOfflineFetchError(err) {
+  const msg = String(err?.message || err || "");
+  return (
+    msg.includes("Failed to fetch") ||
+    msg.includes("NetworkError") ||
+    msg.includes("ERR_INTERNET_DISCONNECTED")
+  );
+}
+
+/* =========================
+   Custom Dropdown: Type Filter
+========================= */
 function setTypeFilter(value) {
+  if (!typeFilter) return;
   typeFilter.dataset.value = value;
+
   const label = typeFilter.querySelector(".dd-label");
   const items = Array.from(typeFilter.querySelectorAll(".dd-item"));
   const selected = items.find(i => i.dataset.value === value) || items[0];
+
   if (label && selected) label.textContent = selected.textContent;
   items.forEach(it => it.setAttribute("aria-selected", it.dataset.value === value ? "true" : "false"));
+
   render();
 }
 
-(function initTypeDropdown(){
+(function initTypeDropdown() {
+  if (!typeFilter) return;
   const dd = typeFilter;
   const btn = dd.querySelector(".dd-btn");
   const menu = dd.querySelector(".dd-menu");
   const items = Array.from(dd.querySelectorAll(".dd-item"));
+  if (!btn || !menu || items.length === 0) return;
 
-  function open(){ dd.classList.add("open"); btn.setAttribute("aria-expanded","true"); menu.focus(); }
-  function close(){ dd.classList.remove("open"); btn.setAttribute("aria-expanded","false"); }
+  function open() { dd.classList.add("open"); btn.setAttribute("aria-expanded", "true"); menu.focus(); }
+  function close() { dd.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); }
 
-  btn.addEventListener("click", ()=> dd.classList.contains("open") ? close() : open());
-  items.forEach(it => it.addEventListener("click", ()=>{ setTypeFilter(it.dataset.value); close(); }));
-  document.addEventListener("mousedown",(e)=>{ if(!dd.contains(e.target)) close(); });
+  btn.addEventListener("click", () => dd.classList.contains("open") ? close() : open());
+  items.forEach(it => it.addEventListener("click", () => { setTypeFilter(it.dataset.value); close(); }));
+  document.addEventListener("mousedown", (e) => { if (!dd.contains(e.target)) close(); });
 
   setTypeFilter(dd.dataset.value || "all");
 })();
 
-function applyFilters(items){
-  const q = (searchInput.value || "").trim().toLowerCase();
-  const t = typeFilter.dataset.value || "all";
+/* =========================
+   Filters
+========================= */
+function applyFilters(items) {
+  const q = (searchInput?.value || "").trim().toLowerCase();
+  const t = typeFilter?.dataset?.value || "all";
 
-  const from = parseDDMMYYYY(fromDate.value);
-  const to = parseDDMMYYYY(toDate.value);
-  const toEnd = to ? new Date(to.getTime() + 24*60*60*1000 - 1) : null;
+  const from = parseDDMMYYYY(fromDate?.value);
+  const to = parseDDMMYYYY(toDate?.value);
+  const toEnd = to ? new Date(to.getTime() + 24 * 60 * 60 * 1000 - 1) : null;
 
   return items.filter(it => {
     if (t !== "all" && it.type !== t) return false;
+
     if (q) {
-      const hay = `${it.location_text||""} ${it.note||""}`.toLowerCase();
+      const hay = `${it.location_text || ""} ${it.note || ""}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
+
     const base = parseDDMMYYYY(it.taken_at) || new Date(it.created_at || 0);
     if (from && base < from) return false;
     if (toEnd && base > toEnd) return false;
+
     return true;
   });
 }
@@ -143,28 +191,35 @@ function applyFilters(items){
 /* =========================
    Auth (anonymous)
 ========================= */
-async function ensureAnonSession(){
-  const { data } = await supa.auth.getSession();
-  session = data.session || null;
+async function ensureAnonSession() {
+  try {
+    const { data } = await supa.auth.getSession();
+    session = data.session || null;
 
-  if (!session) {
-    const { data: s, error } = await supa.auth.signInAnonymously();
-    if (error) {
-      console.error(error);
-      alert("Anonymous sign-in failed. Enable Auth → Providers → Anonymous in Supabase.");
-      return false;
+    if (!session) {
+      const { data: s, error } = await supa.auth.signInAnonymously();
+      if (error) throw error;
+      session = s.session;
     }
-    session = s.session;
-  }
 
-  userPill.textContent = `Guest: ${session.user.id.slice(0,8)}`;
-  return true;
+    setText(userPill, `Guest: ${session.user.id.slice(0, 8)}`);
+    return true;
+  } catch (err) {
+    console.error("Anon auth error:", err);
+
+    if (isOfflineFetchError(err)) {
+      alert("It looks like the device has no internet (or Safari/Chrome blocked the request). Check Wi-Fi/4G and try again.");
+    } else {
+      alert("Anonymous sign-in failed. In Supabase: Auth → Providers → Anonymous must be enabled.");
+    }
+    return false;
+  }
 }
 
 /* =========================
    Storage: signed URL
 ========================= */
-async function signedUrlFor(path){
+async function signedUrlFor(path) {
   if (!path) return null;
   const { data, error } = await supa.storage.from(BUCKET).createSignedUrl(path, SIGNED_URL_SECONDS);
   if (error) {
@@ -174,7 +229,7 @@ async function signedUrlFor(path){
   return data.signedUrl;
 }
 
-async function hydrateSignedUrls(rows){
+async function hydrateSignedUrls(rows) {
   const out = [];
   for (const r of rows) {
     const url = await signedUrlFor(r.storage_path);
@@ -186,8 +241,10 @@ async function hydrateSignedUrls(rows){
 /* =========================
    Rendering
 ========================= */
-function render(){
-  const items = applyFilters(allItems).sort((a,b)=>{
+function render() {
+  if (!grid || !emptyState) return;
+
+  const items = applyFilters(allItems).sort((a, b) => {
     const da = parseDDMMYYYY(a.taken_at) || new Date(a.created_at || 0);
     const db = parseDDMMYYYY(b.taken_at) || new Date(b.created_at || 0);
     return db - da;
@@ -259,40 +316,43 @@ function render(){
 /* =========================
    Viewer
 ========================= */
-async function openViewer(it){
+async function openViewer(it) {
   currentView = it;
 
   const fresh = await signedUrlFor(it.storage_path);
-  const url = fresh || it._signedUrl;
+  const url = fresh || it._signedUrl || "";
 
-  viewer.innerHTML = "";
+  if (viewer) viewer.innerHTML = "";
+
   if (it.type === "image") {
     const img = document.createElement("img");
-    img.src = url || "";
-    viewer.appendChild(img);
-    downloadLink.textContent = "Download photo";
+    img.src = url;
+    viewer?.appendChild(img);
+    setText(downloadLink, "Download photo");
   } else {
     const v = document.createElement("video");
-    v.src = url || "";
+    v.src = url;
     v.controls = true;
     v.playsInline = true;
-    viewer.appendChild(v);
-    downloadLink.textContent = "Download video";
+    viewer?.appendChild(v);
+    setText(downloadLink, "Download video");
   }
 
-  metaWhen.textContent = formatWhen(it.taken_at || it.created_at);
-  metaWhere.textContent = it.location_text || "—";
-  metaNote.textContent = it.note || "—";
+  setText(metaWhen, formatWhen(it.taken_at || it.created_at));
+  setText(metaWhere, it.location_text || "—");
+  setText(metaNote, it.note || "—");
 
-  downloadLink.href = url || "";
-  downloadLink.download = it.filename || (it.type === "image" ? "image" : "video");
+  if (downloadLink) {
+    downloadLink.href = url;
+    downloadLink.download = it.filename || (it.type === "image" ? "image" : "video");
+  }
 
-  viewDialog.showModal();
+  viewDialog?.showModal();
 }
 
-closeView.addEventListener("click", () => viewDialog.close());
+on(closeView, "click", () => viewDialog?.close());
 
-deleteBtn.addEventListener("click", async () => {
+on(deleteBtn, "click", async () => {
   if (!session || !currentCode || !currentView) return;
 
   const ok = confirm("Delete this item?");
@@ -312,21 +372,17 @@ deleteBtn.addEventListener("click", async () => {
     return;
   }
 
-  viewDialog.close();
+  viewDialog?.close();
   currentView = null;
 });
 
 /* =========================
    DB: load + realtime
 ========================= */
-async function loadItems(){
+async function loadItems() {
   if (!currentCode) return;
 
-  const { data, error } = await supa
-    .from("items")
-    .select("*")
-    .eq("code", currentCode);
-
+  const { data, error } = await supa.from("items").select("*").eq("code", currentCode);
   if (error) {
     console.error(error);
     alert("Could not load items.");
@@ -337,14 +393,14 @@ async function loadItems(){
   render();
 }
 
-function stopRealtime(){
+function stopRealtime() {
   if (realtimeChannel) {
     supa.removeChannel(realtimeChannel);
     realtimeChannel = null;
   }
 }
 
-function startRealtime(){
+function startRealtime() {
   stopRealtime();
   if (!currentCode) return;
 
@@ -353,105 +409,115 @@ function startRealtime(){
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "items", filter: `code=eq.${currentCode}` },
-      async () => {
-        await loadItems();
-      }
+      async () => { await loadItems(); }
     )
     .subscribe();
 }
 
 /* =========================
-   Gallery: create / join (CODE ONLY via RPC)
+   Gallery: create / join (RPC)
 ========================= */
-async function setGallery(codeRaw){
+async function setGallery(codeRaw) {
   const code = (codeRaw || "").trim().toUpperCase();
   if (!code) return;
+
+  setText(joinStatus, "Joining…");
 
   const { data, error } = await supa.rpc("join_gallery_code_only", { p_code: code });
   if (error) {
     console.error(error);
-    joinStatus.textContent = "Join failed (RPC error).";
+    setText(joinStatus, "Join failed (RPC error).");
+    alert(error.message || "Join failed.");
     return;
   }
   if (!data) {
-    joinStatus.textContent = "Code not found.";
+    setText(joinStatus, "Code not found.");
     return;
   }
 
   currentCode = code;
   localStorage.setItem("gallery_code", code);
 
-  codePill.textContent = `Code: ${code}`;
-  joinCard.style.display = "none";
-  openAdd.disabled = false;
-  exportBtn.disabled = false;
-  importInput.disabled = false;
+  setText(codePill, `Code: ${code}`);
+  if (joinCard) joinCard.style.display = "none";
+
+  setDisabled(openAdd, false);
+  setDisabled(exportBtn, false);
+  if (importInput) importInput.disabled = false;
 
   await loadItems();
   startRealtime();
+
+  setText(joinStatus, "✅ Joined");
 }
 
-createGalleryBtn.addEventListener("click", async () => {
+on(createGalleryBtn, "click", async () => {
   if (!session) return;
 
+  setText(joinStatus, "Creating…");
+
   let code = makeCode(10);
-  for (let i=0;i<12;i++){
+  for (let i = 0; i < 15; i++) {
     const { data, error } = await supa.rpc("create_gallery_code_only", { p_code: code });
+
     if (error) {
       console.error(error);
       alert("Could not create gallery (RPC error).");
+      setText(joinStatus, "Create failed.");
       return;
     }
-    if (data === true) break; // created
-    code = makeCode(10); // try again
+    if (data === true) break;
+
+    code = makeCode(10);
   }
 
-  joinStatus.textContent = `Created! Your code is: ${code}`;
+  setText(joinStatus, `Created! Your code is: ${code}`);
   await setGallery(code);
 });
 
-joinGalleryBtn.addEventListener("click", async () => {
+on(joinGalleryBtn, "click", async () => {
   if (!session) return;
-  await setGallery(joinCodeInput.value);
+  await setGallery(joinCodeInput?.value);
 });
 
-switchBtn.addEventListener("click", () => {
+on(switchBtn, "click", () => {
   currentCode = null;
   stopRealtime();
   allItems = [];
   render();
 
-  codePill.textContent = "Code: —";
-  joinCard.style.display = "";
-  openAdd.disabled = true;
-  exportBtn.disabled = true;
-  importInput.disabled = true;
-  joinStatus.textContent = "Enter a code to join, or create a new gallery.";
+  setText(codePill, "Code: —");
+  if (joinCard) joinCard.style.display = "";
+  setDisabled(openAdd, true);
+  setDisabled(exportBtn, true);
+  if (importInput) importInput.disabled = true;
+
+  setText(joinStatus, "Enter a code to join, or create a new gallery.");
 });
 
 /* =========================
    Add item (upload)
 ========================= */
-openAdd.addEventListener("click", () => {
+on(openAdd, "click", () => {
   if (!session || !currentCode) { alert("Join a gallery first."); return; }
-  addDialog.showModal();
+  addDialog?.showModal();
 });
 
-function closeAddDialog(){
-  addDialog.close();
-  addForm.reset();
+function closeAddDialog() {
+  addDialog?.close();
+  addForm?.reset();
 }
-closeAdd.addEventListener("click", closeAddDialog);
-cancelAdd.addEventListener("click", closeAddDialog);
+on(closeAdd, "click", closeAddDialog);
+on(cancelAdd, "click", closeAddDialog);
 
-addForm.addEventListener("submit", async (e) => {
+on(addForm, "submit", async (e) => {
   e.preventDefault();
   if (!session || !currentCode) return;
 
-  const f = fileInput.files?.[0];
+  const f = fileInput?.files?.[0];
   if (!f) return;
 
-  const takenStr = (takenAt.value || "").trim();
+  const takenStr = (takenAt?.value || "").trim();
   if (takenStr && !parseDDMMYYYY(takenStr)) {
     alert("Please enter a valid date in DD/MM/YYYY.");
     return;
@@ -463,6 +529,7 @@ addForm.addEventListener("submit", async (e) => {
   const safeName = f.name.replace(/[^\w.\-]+/g, "_");
   const storagePath = `${currentCode}/${uid}/${Date.now()}_${safeName}`;
 
+  // Upload
   const { error: upErr } = await supa.storage.from(BUCKET).upload(storagePath, f, {
     upsert: false,
     contentType: f.type,
@@ -473,14 +540,15 @@ addForm.addEventListener("submit", async (e) => {
     return;
   }
 
+  // Insert metadata
   const { error: insErr } = await supa.from("items").insert({
     code: currentCode,
     type,
     mime: f.type,
     filename: f.name,
     taken_at: takenStr || null,
-    location_text: (locationText.value || "").trim() || null,
-    note: (note.value || "").trim() || null,
+    location_text: (locationText?.value || "").trim() || null,
+    note: (note?.value || "").trim() || null,
     storage_path: storagePath,
     public_url: null,
     created_by: uid,
@@ -494,51 +562,59 @@ addForm.addEventListener("submit", async (e) => {
   }
 
   closeAddDialog();
-  await loadItems();
+  await loadItems(); // realtime ще го хване, но това е моментално
 });
 
 /* =========================
-   Export / Import (JSON) – optional
+   Export / Import (optional)
 ========================= */
-exportBtn.addEventListener("click", async () => {
+on(exportBtn, "click", async () => {
   if (!currentCode) return;
 
   const { data, error } = await supa.from("items").select("*").eq("code", currentCode);
   if (error) { console.error(error); alert("Export failed."); return; }
 
-  const json = JSON.stringify({ version: 1, code: currentCode, exportedAt: new Date().toISOString(), items: data || [] }, null, 2);
+  const json = JSON.stringify(
+    { version: 1, code: currentCode, exportedAt: new Date().toISOString(), items: data || [] },
+    null, 2
+  );
+
   const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
   a.href = url;
-  a.download = `gallery-${currentCode}-${new Date().toISOString().slice(0,10)}.json`;
+  a.download = `gallery-${currentCode}-${new Date().toISOString().slice(0, 10)}.json`;
   document.body.appendChild(a);
   a.click();
   a.remove();
-
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
 });
 
-importInput.addEventListener("change", async () => {
-  // NOTE: this imports metadata only (not files). Keeping it simple.
-  importInput.value = "";
-  alert("Import is disabled for now (metadata-only). If you want full import including files, tell me.");
+on(importInput, "change", async () => {
+  // metadata-only stub
+  if (importInput) importInput.value = "";
+  alert("Import is disabled for now (metadata-only).");
 });
 
 /* =========================
-   Filters
+   Filters events
 ========================= */
-[searchInput, fromDate, toDate].forEach(el => el.addEventListener("input", render));
-clearFilters.addEventListener("click", () => {
-  searchInput.value = "";
-  fromDate.value = "";
-  toDate.value = "";
+on(searchInput, "input", render);
+on(fromDate, "input", render);
+on(toDate, "input", render);
+
+on(clearFilters, "click", () => {
+  if (searchInput) searchInput.value = "";
+  if (fromDate) fromDate.value = "";
+  if (toDate) toDate.value = "";
   setTypeFilter("all");
 });
 
 /* =========================
    Custom Date Picker (dialog-safe)
+   - Appends into the same <dialog> if input is inside it
+   - Works on iOS top-layer dialogs
 ========================= */
 const MONTHS_EN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const DOW_EN = ["Mo","Tu","We","Th","Fr","Sa","Su"];
@@ -546,6 +622,7 @@ const DOW_EN = ["Mo","Tu","We","Th","Fr","Sa","Su"];
 let dpEl = null;
 let dpActiveInput = null;
 let dpMonth = null;
+let dpHost = null; // current host (dialog or body)
 
 function ensureDatepicker() {
   if (dpEl) return dpEl;
@@ -567,6 +644,7 @@ function ensureDatepicker() {
       <button type="button" class="dp-link" id="dpToday">Today</button>
     </div>
   `;
+
   document.body.appendChild(dpEl);
 
   dpEl.querySelector("#dpPrev").addEventListener("click", () => shiftMonth(-1));
@@ -586,10 +664,16 @@ function ensureDatepicker() {
     render();
   });
 
+  // Close rules
   document.addEventListener("mousedown", (e) => {
     if (!dpEl || dpEl.style.display === "none") return;
     if (dpEl.contains(e.target)) return;
     if (dpActiveInput && (e.target === dpActiveInput || dpActiveInput.contains(e.target))) return;
+
+    // If click is inside the same dialog host, keep open
+    const activeDialog = dpActiveInput?.closest("dialog");
+    if (activeDialog && activeDialog.contains(e.target)) return;
+
     closeDatepicker();
   });
 
@@ -607,9 +691,22 @@ function ensureDatepicker() {
   return dpEl;
 }
 
+function mountDatepickerToHost(input) {
+  const hostDialog = input.closest("dialog");
+  const host = hostDialog || document.body;
+
+  if (dpHost !== host) {
+    host.appendChild(dpEl);
+    dpHost = host;
+  }
+}
+
 function openDatepickerForInput(input) {
   ensureDatepicker();
   dpActiveInput = input;
+
+  // Move picker inside dialog if needed
+  mountDatepickerToHost(input);
 
   const parsed = parseDDMMYYYY(input.value);
   const base = parsed || new Date();
@@ -631,6 +728,7 @@ function positionDatepicker(input) {
   let top = r.bottom + 8;
   let left = r.left;
 
+  // Since dpEl is position: fixed (in your CSS), we use viewport coords
   if (top + dpEl.offsetHeight > window.innerHeight - 10) {
     top = Math.max(10, r.top - dpEl.offsetHeight - 8);
   }
@@ -671,7 +769,7 @@ function renderDatepicker() {
   }
 
   const first = new Date(year, month, 1, 12, 0, 0);
-  const firstDow = (first.getDay() + 6) % 7; // monday start
+  const firstDow = (first.getDay() + 6) % 7; // Monday start
   const start = new Date(year, month, 1 - firstDow, 12, 0, 0);
 
   const selected = dpActiveInput ? parseDDMMYYYY(dpActiveInput.value) : null;
@@ -699,20 +797,25 @@ function renderDatepicker() {
 }
 
 function bindDatepicker(input) {
+  if (!input) return;
+
   input.addEventListener("focus", () => openDatepickerForInput(input));
   input.addEventListener("click", () => openDatepickerForInput(input));
 
+  // typing mask: 12122026 -> 12/12/2026
   input.addEventListener("input", () => {
     const raw = input.value.replace(/[^\d]/g, "").slice(0, 8);
     let out = raw;
-    if (raw.length >= 3) out = `${raw.slice(0,2)}/${raw.slice(2)}`;
-    if (raw.length >= 5) out = `${raw.slice(0,2)}/${raw.slice(2,4)}/${raw.slice(4)}`;
+    if (raw.length >= 3) out = `${raw.slice(0, 2)}/${raw.slice(2)}`;
+    if (raw.length >= 5) out = `${raw.slice(0, 2)}/${raw.slice(2, 4)}/${raw.slice(4)}`;
     input.value = out;
   });
 
   input.addEventListener("blur", () => {
+    // if focus moved into picker, don't validate/clear yet
     const active = document.activeElement;
     if (dpEl && dpEl.contains(active)) return;
+
     if (!input.value) return;
     if (!parseDDMMYYYY(input.value)) {
       input.value = "";
@@ -720,30 +823,32 @@ function bindDatepicker(input) {
     }
   });
 }
+
+// Bind to all .date-input (takenAt, fromDate, toDate)
 document.querySelectorAll(".date-input").forEach(bindDatepicker);
 
 /* =========================
    Init
 ========================= */
-(async function init(){
-  openAdd.disabled = true;
-  exportBtn.disabled = true;
-  importInput.disabled = true;
+(async function init() {
+  setDisabled(openAdd, true);
+  setDisabled(exportBtn, true);
+  if (importInput) importInput.disabled = true;
 
-  joinStatus.textContent = "Connecting…";
+  setText(codePill, "Code: —");
+  setText(joinStatus, "Connecting…");
 
   const ok = await ensureAnonSession();
   if (!ok) return;
 
-  joinStatus.textContent = "Enter a code to join, or create a new gallery.";
+  setText(joinStatus, "Enter a code to join, or create a new gallery.");
 
   const saved = localStorage.getItem("gallery_code");
   if (saved) {
-    joinStatus.textContent = "Restoring your last gallery…";
+    setText(joinStatus, "Restoring your last gallery…");
     await setGallery(saved);
   } else {
-    joinCard.style.display = "";
-    codePill.textContent = "Code: —";
+    if (joinCard) joinCard.style.display = "";
   }
 
   render();
